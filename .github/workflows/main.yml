@@ -48,9 +48,10 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       
       - name: Run Pytest with HTML Report
-        # 3. Автоматичний HTML-звіт
+        # Додаємо встановлення PYTHONPATH та запуск через модуль python
         run: |
-          pytest --html=report.html --self-contained-html
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          python -m pytest tests/ --html=report.html --self-contained-html
 
       - name: Upload Test Report
         if: always()
