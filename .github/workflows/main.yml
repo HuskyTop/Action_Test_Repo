@@ -1,0 +1,80 @@
+name: Python CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # 1. Перевірка стилю коду (Linting)
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Linting Tools
+        run: |
+          pip install flake8
+      - name: Run Flake8
+        run: |
+          # Перевірка на синтаксичні помилки та стиль (PEP8)
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  # 2. Мультиверсійне тестування з Pytest (закриває задачі "Автоматичне тестування" та "Мультиверсійність")
+  test:
+    needs: linting
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-html
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      
+      - name: Run Pytest with HTML Report
+        # 3. Автоматичний HTML-звіт
+        run: |
+          pytest --html=report.html --self-contained-html
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-python-${{ matrix.python-version }}
+          path: report.html
+
+  # 4. Збірка Docker-контейнера
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false # Встановіть true, якщо додасте логін до Docker Hub
+          tags: user/python-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
