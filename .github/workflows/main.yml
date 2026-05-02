@@ -52,19 +52,8 @@ jobs:
       
       - name: Run Pytest with HTML Report
         run: |
-          echo "=== ПЕРЕВІРКА ФАЙЛІВ НА СЕРВЕРІ ==="
-          echo "Вміст кореневої папки:"
-          ls -la
-          
-          echo "Вміст папки tests:"
-          ls -la tests/ || echo "ПАПКИ TESTS НЕ ІСНУЄ НА GITHUB!"
-          
-          echo "Вміст файлу test_main.py:"
-          cat tests/test_main.py || echo "ФАЙЛУ TEST_MAIN.PY НЕ ІСНУЄ!"
-          
-          echo "=== ЗАПУСК ТЕСТІВ ==="
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          # Вказуємо ПРЯМО на файл. Якщо його немає, pytest видасть жорстку помилку, а не 0 items.
+          # ТУТ ЗМІНА: Ми прямо вказуємо шлях до файлу: tests/test_main.py
           python -m pytest tests/test_main.py --html=report.html --self-contained-html
 
       - name: Upload Test Report
